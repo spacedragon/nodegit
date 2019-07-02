@@ -51,6 +51,7 @@ install:
   - set -e;
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then
       docker run -v `pwd`:/build --rm spacedragon/centos6_builder:v2 /build/build.sh;
+      sudo chown -R travis:travis .;
     fi
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then
       travis_retry npm install;
