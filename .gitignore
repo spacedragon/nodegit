@@ -40,7 +40,7 @@
 .DS_STORE
 .idea
 
-.vscode
+.vscode/
 jsconfig.json
 
 test/id_rsa
