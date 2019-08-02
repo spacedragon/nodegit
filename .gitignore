@@ -38,7 +38,7 @@
 
 *.log
 .DS_STORE
-.idea
+.idea/
 
 .vscode/
 jsconfig.json

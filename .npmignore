@@ -1,4 +1,6 @@
 /.travis/
+/.vscode/
+/.idea/
 /build/
 /examples/
 /generate/
