@@ -1,39 +1,13 @@
-NodeGit
--------
+# NodeGit
 
 > Node bindings to the [libgit2](http://libgit2.github.com/) project.
 
-<table>
-  <thead>
-    <tr>
-      <th>Linux</th>
-      <th>OS X</th>
-      <th>Windows</th>
-      <th>Coverage</th>
-      <th>Dependencies</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td colspan="2" align="center">
-        <a href="https://travis-ci.org/nodegit/nodegit"><img src="https://api.travis-ci.org/nodegit/nodegit.svg?branch=master"></a>
-      </td>
-      <td align="center">
-        <a href="https://ci.appveyor.com/project/timbranyen/nodegit"><img src="https://ci.appveyor.com/api/projects/status/e5a5q75l9yfhnfv2?svg=true"></a>
-      </td>
-      <td align="center">
-        <a href="https://coveralls.io/r/nodegit/nodegit"><img src="https://coveralls.io/repos/nodegit/nodegit/badge.svg" alt="Coverage Status"></a>
-      </td>
-      <td align="center">
-        <a href="https://david-dm.org/nodegit/nodegit"><img src="https://david-dm.org/nodegit/nodegit.svg"></a>
-      </td>
-    </tr>
-  </tbody>
-</table>
 
-**Stable (libgit2@v0.27.0): 0.27.0**
+Linux & macOS | Windows | Coverage | Dependencies
+------------- | ------- | -------- | -------------
+[![Build Status Travis](https://api.travis-ci.org/elastic/nodegit.svg?branch=master)](https://travis-ci.org/elastic/nodegit) | [![Build Status AppVeyor](https://ci.appveyor.com/api/projects/status/2mkblygy6c1p2b8f?svg=true)](https://ci.appveyor.com/project/spacedragon/nodegit) | [![Coveralls](https://coveralls.io/repos/nodegit/nodegit/badge.svg)](https://coveralls.io/r/nodegit/nodegit) | [![Dependencies](https://david-dm.org/nodegit/nodegit.svg)](https://david-dm.org/nodegit/nodegit)
 
-> Not compatible with node 10, at the moment. [We're working on it](https://github.com/nodegit/nodegit/issues/1490).
+**Stable (libgit2@v0.27.3): 0.27.3**
 
 ## Have a problem? Come chat with us! ##
 
@@ -105,7 +79,7 @@ sudo apt-get install libssl-dev
 Additionally, you need `curl-config` on your system. You need one of these packages:
   * libcurl4-gnutls-dev
   * libcurl4-nss-dev
-  * libcurl4-openssl-dev 
+  * libcurl4-openssl-dev
 
 If you are still encountering problems while installing, you should try the
 [Building from source](http://www.nodegit.org/guides/install/from-source/)

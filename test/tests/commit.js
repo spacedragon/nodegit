@@ -1,7 +1,6 @@
 var assert = require("assert");
 var path = require("path");
-var promisify = require("promisify-node");
-var fse = promisify(require("fs-extra"));
+var fse = require("fs-extra");
 
 var garbageCollect = require("../utils/garbage_collect.js");
 var leakTest = require("../utils/leak_test");
@@ -18,6 +17,7 @@ describe("Commit", function() {
   var Oid = NodeGit.Oid;
 
   var reposPath = local("../repos/workdir");
+  var newRepoPath = local("../repos/new");
   var oid = "fce88902e66c72b5b93e75bdb5ae717038b221f6";
 
   function reinitialize(test) {
@@ -451,6 +451,242 @@ describe("Commit", function() {
     });
   });
 
+  describe("amendWithSignature", function() {
+    it("can amend with signature", function() {
+      const signedData = "-----BEGIN PGP SIGNATURE-----\n" +
+      "\n" +
+      "iQJHBAEBCAAxFiEEKdxGpJ93wnkLaBKfURjJKedOfEMFAlxPKUYTHHN0ZXZla0Bh\n" +
+      "eG9zb2Z0LmNvbQAKCRBRGMkp5058Q3vcD/0Uf6P68g98Kbvsgjg/aidM1ujruXaw\n" +
+      "X5WSsCAw+wWGICOj0n+KBnmQruI4HSFz3zykEshuOpcBv1X/+huwDeB/hBqonCU8\n" +
+      "QdexCdWR70YbT1bufesUwV9v1qwE4WOmFxWXgwh55K0wDRkc0u2aLcwrJkIEEVfs\n" +
+      "HqZyFzU4kwbGekY/m7d1DsBhWyKEGW9/25WMYmjWOWOiaFjeBaHLlxiEM8KGnMLH\n" +
+      "wx37NuFuaABgi23AAcBGdeWy04TEuU4S51+bHM3RotrZ2cryW2lEbkkXodhIJcq0\n" +
+      "RgrStCbvR0ehnOPdYSiRbxK8JNLZuNjHlK2g7wVi+C83vwMQuhU4H6OlYHGVr664\n" +
+      "4YzL83FdIo7wiMOFd2OOMLlCfHgTun60FvjCs4WHjrwH1fQl287FRPLa/4olBSQP\n" +
+      "yUXJaZdxm4cB4L/1pmbb/J/XUiOio3MpaN3GFm2hZloUlag1uPDBtCxTl5odvj4a\n" +
+      "GOmTBWznXxF/zrKnQVSvv+EccNxYFc0VVjAxGgNqPzIxDAKtw1lE5pbBkFpFpNHz\n" +
+      "StmwZkP9QIJY4hJYQfM+pzHLe8xjexL+Kh/TrYXgY1m/4vJe0HJSsnRnaR8Yfqhh\n" +
+      "LReqo94VHRYXR0rZQv4py0D9TrWaI8xHLve6ewhLPNRzyaI9fNrinbcPYZZOWnRi\n" +
+      "ekgUBx+BX6nJOw==\n" +
+      "=4Hy5\n" +
+      "-----END PGP SIGNATURE-----";
+
+      const onSignature = () => ({
+        code: NodeGit.Error.CODE.OK,
+        field: "gpgsig",
+        signedData
+      });
+
+      var repo;
+      var oid;
+      var commit;
+      var message;
+      var parents;
+
+      return NodeGit.Repository.open(reposPath)
+      .then(function(repoResult) {
+        repo = repoResult;
+        return repo.getHeadCommit();
+      })
+      .then(function(headCommit) {
+        message = headCommit.message() + "\n";
+        parents = headCommit.parents();
+
+        return headCommit.amendWithSignature(
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          onSignature
+        );
+      })
+      .then(function(oidResult) {
+        oid = oidResult;
+        return NodeGit.Commit.lookup(repo, oid);
+      })
+      .then(function(commitResult) {
+        commit = commitResult;
+        return commit.getSignature("gpgsig");
+      })
+      .then(function(signatureInfo) {
+        assert.equal(signatureInfo.signature, signedData);
+        assert.equal(commit.message(), message);
+        assert.deepEqual(commit.parents(), parents);
+      });
+    });
+
+    it("will respects overridden arguments", function() {
+      const signedData = "-----BEGIN PGP SIGNATURE-----\n" +
+      "\n" +
+      "iQJHBAEBCAAxFiEEKdxGpJ93wnkLaBKfURjJKedOfEMFAlxPKUYTHHN0ZXZla0Bh\n" +
+      "eG9zb2Z0LmNvbQAKCRBRGMkp5058Q3vcD/0Uf6P68g98Kbvsgjg/aidM1ujruXaw\n" +
+      "X5WSsCAw+wWGICOj0n+KBnmQruI4HSFz3zykEshuOpcBv1X/+huwDeB/hBqonCU8\n" +
+      "QdexCdWR70YbT1bufesUwV9v1qwE4WOmFxWXgwh55K0wDRkc0u2aLcwrJkIEEVfs\n" +
+      "HqZyFzU4kwbGekY/m7d1DsBhWyKEGW9/25WMYmjWOWOiaFjeBaHLlxiEM8KGnMLH\n" +
+      "wx37NuFuaABgi23AAcBGdeWy04TEuU4S51+bHM3RotrZ2cryW2lEbkkXodhIJcq0\n" +
+      "RgrStCbvR0ehnOPdYSiRbxK8JNLZuNjHlK2g7wVi+C83vwMQuhU4H6OlYHGVr664\n" +
+      "4YzL83FdIo7wiMOFd2OOMLlCfHgTun60FvjCs4WHjrwH1fQl287FRPLa/4olBSQP\n" +
+      "yUXJaZdxm4cB4L/1pmbb/J/XUiOio3MpaN3GFm2hZloUlag1uPDBtCxTl5odvj4a\n" +
+      "GOmTBWznXxF/zrKnQVSvv+EccNxYFc0VVjAxGgNqPzIxDAKtw1lE5pbBkFpFpNHz\n" +
+      "StmwZkP9QIJY4hJYQfM+pzHLe8xjexL+Kh/TrYXgY1m/4vJe0HJSsnRnaR8Yfqhh\n" +
+      "LReqo94VHRYXR0rZQv4py0D9TrWaI8xHLve6ewhLPNRzyaI9fNrinbcPYZZOWnRi\n" +
+      "ekgUBx+BX6nJOw==\n" +
+      "=4Hy5\n" +
+      "-----END PGP SIGNATURE-----";
+
+      const onSignature = () => ({
+        code: NodeGit.Error.CODE.OK,
+        field: "gpgsig",
+        signedData
+      });
+
+      var repo;
+      var oid;
+      var commit;
+      var message;
+      var parents;
+      var commitTree;
+
+      var author = NodeGit.Signature.create(
+        "Scooby Doo",
+        "scoob@mystery.com",
+        123456789,
+        60
+      );
+      var committer = NodeGit.Signature.create(
+        "Shaggy Rogers",
+        "shaggy@mystery.com",
+        987654321,
+        90
+      );
+      var tree = Oid.fromString("f4661419a6fbbe865f78644fec722c023ce4b65f");
+
+      return NodeGit.Repository.open(reposPath)
+      .then(function(repoResult) {
+        repo = repoResult;
+        return repo.getHeadCommit();
+      })
+      .then(function(headCommit) {
+        message = headCommit.message() + "\n";
+        parents = headCommit.parents();
+
+        return headCommit.amendWithSignature(
+          null,
+          author,
+          committer,
+          null,
+          null,
+          tree,
+          onSignature
+        );
+      })
+      .then(function(oidResult) {
+        oid = oidResult;
+        return NodeGit.Commit.lookup(repo, oid);
+      })
+      .then(function(commitResult) {
+        commit = commitResult;
+        return commit.getTree();
+      })
+      .then(function(commitTreeResult) {
+        commitTree = commitTreeResult;
+        return commit.getSignature("gpgsig");
+      })
+      .then(function(signatureInfo) {
+        assert.equal(signatureInfo.signature, signedData);
+        assert.equal(commit.message(), message);
+        assert.deepEqual(commit.parents(), parents);
+        assert.deepEqual(commitTree.id(), tree);
+        assert.deepEqual(commit.author(), author);
+        assert.deepEqual(commit.committer(), committer);
+      });
+    });
+
+    it("can optionally skip signing process", function() {
+      const onSignature = () => ({
+        code: NodeGit.Error.CODE.PASSTHROUGH
+      });
+
+      var repo;
+      var oid;
+      var commit;
+      var message;
+      var parents;
+
+      return NodeGit.Repository.open(reposPath)
+      .then(function(repoResult) {
+        repo = repoResult;
+        return repo.getHeadCommit();
+      })
+      .then(function(headCommit) {
+        message = headCommit.message();
+        parents = headCommit.parents();
+
+        return headCommit.amendWithSignature(
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          onSignature
+        );
+      })
+      .then(function(oidResult) {
+        oid = oidResult;
+        return NodeGit.Commit.lookup(repo, oid);
+      })
+      .then(function(commitResult) {
+        commit = commitResult;
+        return commit.getSignature("gpgsig")
+        .then(function() {
+          assert.fail("Should not have a signature");
+        }, function(error) {
+          if (error && error.message === "this commit is not signed") {
+            return;
+          }
+          throw error;
+        });
+      })
+      .then(function(signatureInfo) {
+        assert.equal(commit.message(), message);
+        assert.deepEqual(commit.parents(), parents);
+      });
+    });
+
+    it("will throw if signing callback returns an error code", function() {
+      const onSignature = () => ({
+        code: NodeGit.Error.CODE.ERROR
+      });
+
+      return NodeGit.Repository.open(reposPath)
+      .then(function(repo) {
+        return repo.getHeadCommit();
+      })
+      .then(function(headCommit) {
+        return headCommit.amendWithSignature(
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          onSignature
+        );
+      })
+      .then(function() {
+        assert.fail("amendWithSignature should have failed.");
+      }, function(error) {
+        if (error && error.errno === NodeGit.Error.CODE.ERROR) {
+          return;
+        }
+        throw error;
+      });
+    });
+  });
+
   it("has an owner", function() {
     var owner = this.commit.owner();
     assert.ok(owner instanceof Repository);
@@ -792,6 +1028,354 @@ describe("Commit", function() {
   });
 
   describe("Commit's Signature", function() {
+    it("Can create a signed commit in a repo", function() {
+      var signedData = "-----BEGIN PGP SIGNATURE-----\n" +
+        "Version: GnuPG v1.4.12 (Darwin)\n" +
+        "\n" +
+        "iQIcBAABAgAGBQJQ+FMIAAoJEH+LfPdZDSs1e3EQAJMjhqjWF+WkGLHju7pTw2al\n" +
+        "o6IoMAhv0Z/LHlWhzBd9e7JeCnanRt12bAU7yvYp9+Z+z+dbwqLwDoFp8LVuigl8\n" +
+        "JGLcnwiUW3rSvhjdCp9irdb4+bhKUnKUzSdsR2CK4/hC0N2i/HOvMYX+BRsvqweq\n" +
+        "AsAkA6dAWh+gAfedrBUkCTGhlNYoetjdakWqlGL1TiKAefEZrtA1TpPkGn92vbLq\n" +
+        "SphFRUY9hVn1ZBWrT3hEpvAIcZag3rTOiRVT1X1flj8B2vGCEr3RrcwOIZikpdaW\n" +
+        "who/X3xh/DGbI2RbuxmmJpxxP/8dsVchRJJzBwG+yhwU/iN3MlV2c5D69tls/Dok\n" +
+        "6VbyU4lm/ae0y3yR83D9dUlkycOnmmlBAHKIZ9qUts9X7mWJf0+yy2QxJVpjaTGG\n" +
+        "cmnQKKPeNIhGJk2ENnnnzjEve7L7YJQF6itbx5VCOcsGh3Ocb3YR7DMdWjt7f8pu\n" +
+        "c6j+q1rP7EpE2afUN/geSlp5i3x8aXZPDj67jImbVCE/Q1X9voCtyzGJH7MXR0N9\n" +
+        "ZpRF8yzveRfMH8bwAJjSOGAFF5XkcR/RNY95o+J+QcgBLdX48h+ZdNmUf6jqlu3J\n" +
+        "7KmTXXQcOVpN6dD3CmRFsbjq+x6RHwa8u1iGn+oIkX908r97ckfB/kHKH7ZdXIJc\n" +
+        "cpxtDQQMGYFpXK/71stq\n" +
+        "=ozeK\n" +
+        "-----END PGP SIGNATURE-----";
+
+      const onSignature = () => ({
+        code: NodeGit.Error.CODE.OK,
+        field: "gpgsig",
+        signedData
+      });
+
+      var test = this;
+      var expectedCommitId = "ccb99bb20716ef7c37e92c7b8db029a7af7f747b";
+      var fileName = "newfile.txt";
+      var fileContent = "hello world";
+
+      var repo;
+      var index;
+      var treeOid;
+      var parent;
+
+      return NodeGit.Repository.open(reposPath)
+      .then(function(repoResult) {
+        repo = repoResult;
+        return fse.writeFile(path.join(repo.workdir(), fileName), fileContent);
+      })
+      .then(function() {
+        return repo.refreshIndex();
+      })
+      .then(function(indexResult) {
+        index = indexResult;
+      })
+      .then(function() {
+        return index.addByPath(fileName);
+      })
+      .then(function() {
+        return index.write();
+      })
+      .then(function() {
+        return index.writeTree();
+      })
+      .then(function(oidResult) {
+        treeOid = oidResult;
+        return NodeGit.Reference.nameToId(repo, "HEAD");
+      })
+      .then(function(head) {
+        return repo.getCommit(head);
+      })
+      .then(function(parentResult) {
+        parent = parentResult;
+        return Promise.all([
+          NodeGit.Signature.create("Foo Bar", "foo@bar.com", 123456789, 60),
+          NodeGit.Signature.create("Foo A Bar", "foo@bar.com", 987654321, 90)
+        ]);
+      })
+      .then(function(signatures) {
+        var author = signatures[0];
+        var committer = signatures[1];
+
+        return repo.createCommitWithSignature(
+          null,
+          author,
+          committer,
+          "message",
+          treeOid,
+          [parent],
+          onSignature
+        );
+      })
+      .then(function(commitId) {
+        assert.equal(expectedCommitId, commitId);
+        return NodeGit.Commit.lookup(repo, commitId);
+      })
+      .then(function(commit) {
+        return commit.getSignature("gpgsig");
+      })
+      .then(function(signatureInfo) {
+        assert.equal(signedData, signatureInfo.signature);
+        return reinitialize(test);
+      }, function(reason) {
+        return reinitialize(test)
+          .then(function() {
+            return Promise.reject(reason);
+          });
+      });
+    });
+
+    it("Can create a signed commit in a repo and update existing ref",
+      function() {
+      var signedData = "-----BEGIN PGP SIGNATURE-----\n" +
+        "Version: GnuPG v1.4.12 (Darwin)\n" +
+        "\n" +
+        "iQIcBAABAgAGBQJQ+FMIAAoJEH+LfPdZDSs1e3EQAJMjhqjWF+WkGLHju7pTw2al\n" +
+        "o6IoMAhv0Z/LHlWhzBd9e7JeCnanRt12bAU7yvYp9+Z+z+dbwqLwDoFp8LVuigl8\n" +
+        "JGLcnwiUW3rSvhjdCp9irdb4+bhKUnKUzSdsR2CK4/hC0N2i/HOvMYX+BRsvqweq\n" +
+        "AsAkA6dAWh+gAfedrBUkCTGhlNYoetjdakWqlGL1TiKAefEZrtA1TpPkGn92vbLq\n" +
+        "SphFRUY9hVn1ZBWrT3hEpvAIcZag3rTOiRVT1X1flj8B2vGCEr3RrcwOIZikpdaW\n" +
+        "who/X3xh/DGbI2RbuxmmJpxxP/8dsVchRJJzBwG+yhwU/iN3MlV2c5D69tls/Dok\n" +
+        "6VbyU4lm/ae0y3yR83D9dUlkycOnmmlBAHKIZ9qUts9X7mWJf0+yy2QxJVpjaTGG\n" +
+        "cmnQKKPeNIhGJk2ENnnnzjEve7L7YJQF6itbx5VCOcsGh3Ocb3YR7DMdWjt7f8pu\n" +
+        "c6j+q1rP7EpE2afUN/geSlp5i3x8aXZPDj67jImbVCE/Q1X9voCtyzGJH7MXR0N9\n" +
+        "ZpRF8yzveRfMH8bwAJjSOGAFF5XkcR/RNY95o+J+QcgBLdX48h+ZdNmUf6jqlu3J\n" +
+        "7KmTXXQcOVpN6dD3CmRFsbjq+x6RHwa8u1iGn+oIkX908r97ckfB/kHKH7ZdXIJc\n" +
+        "cpxtDQQMGYFpXK/71stq\n" +
+        "=ozeK\n" +
+        "-----END PGP SIGNATURE-----";
+
+      const onSignature = () => ({
+        code: NodeGit.Error.CODE.OK,
+        field: "gpgsig",
+        signedData
+      });
+
+      var test = this;
+      var expectedCommitId = "ccb99bb20716ef7c37e92c7b8db029a7af7f747b";
+      var fileName = "newfile.txt";
+      var fileContent = "hello world";
+
+      var repo;
+      var index;
+      var treeOid;
+      var parent;
+
+      return NodeGit.Repository.open(reposPath)
+      .then(function(repoResult) {
+        repo = repoResult;
+        return fse.writeFile(path.join(repo.workdir(), fileName), fileContent);
+      })
+      .then(function() {
+        return repo.refreshIndex();
+      })
+      .then(function(indexResult) {
+        index = indexResult;
+      })
+      .then(function() {
+        return index.addByPath(fileName);
+      })
+      .then(function() {
+        return index.write();
+      })
+      .then(function() {
+        return index.writeTree();
+      })
+      .then(function(oidResult) {
+        treeOid = oidResult;
+        return NodeGit.Reference.nameToId(repo, "HEAD");
+      })
+      .then(function(head) {
+        return repo.getCommit(head);
+      })
+      .then(function(parentResult) {
+        parent = parentResult;
+        return Promise.all([
+          NodeGit.Signature.create("Foo Bar", "foo@bar.com", 123456789, 60),
+          NodeGit.Signature.create("Foo A Bar", "foo@bar.com", 987654321, 90)
+        ]);
+      })
+      .then(function(signatures) {
+        var author = signatures[0];
+        var committer = signatures[1];
+
+        return repo.createCommitWithSignature(
+          "HEAD",
+          author,
+          committer,
+          "message",
+          treeOid,
+          [parent],
+          onSignature);
+      })
+      .then(function(commitId) {
+        assert.equal(expectedCommitId, commitId);
+        return NodeGit.Commit.lookup(repo, commitId);
+      })
+      .then(function(commit) {
+        return commit.getSignature("gpgsig");
+      })
+      .then(function(signatureInfo) {
+        assert.equal(signedData, signatureInfo.signature);
+        return repo.getHeadCommit();
+      })
+      .then(function(headCommit) {
+        assert.equal(expectedCommitId, headCommit.id());
+        return undoCommit()
+        .then(function(){
+          return reinitialize(test);
+        });
+      }, function(reason) {
+        return reinitialize(test)
+          .then(function() {
+            return Promise.reject(reason);
+          });
+      });
+    });
+
+    it("Can create a signed commit in bare a repo and update non-existent ref",
+      function() {
+      var signedData = "-----BEGIN PGP SIGNATURE-----\n" +
+        "\n" +
+        "iQIzBAABCAAdFiEEHYpzGBSIRCy6QrNr0R10kNTwiG8FAlxcuSoACgkQ0R10kNTw\n" +
+        "iG9sZA//Z6mrX5l//gjtn7Fy3Cg5khasNMZA15JUPzfoSyVkaYM7g/iZrJr4uZmm\n" +
+        "lrhqxTDP4SUEL6dMOT0fjAudulP19Stv0mUMOoQ9cfvU0DAuFlI1z2Ny9IR+3hJK\n" +
+        "XpIQCHZAAY9KrGajJvDO+WqukrMwKh2dwaQLgB2+cS7ehBpbW45+l+Bq4hTlULiJ\n" +
+        "ohZ2SQhqj65knErdbfJ2B7yVlQbfG2vbD6qN4qJOkJpkFRdDhLmGnNjUj+vcmYO2\n" +
+        "Be5CLyjuhYszzUqys6ix4UHr10KihFk31N17CgA2ZsDSzE3VsMCPlVPV9jWuMceJ\n" +
+        "0IFsJEXFR4SOlRAq23BxD7aaYao6AF/YBhCQnDiuiQLCJ7WdUAmja6VPyEajAjoX\n" +
+        "CkdDs1P4N9IeIPvJECn8Df4NEEkzW8sV3i96ryk066m1ZmZWemJ2zdGVbfR+AuFZ\n" +
+        "7QwgBRidj3thIk0geh9g10+pbRuTzxNXklqxq4DQb3VEXIIJMUcqtN1bUPEPiLyA\n" +
+        "SU3uJ1THyYznAVZy6aqw+mNq7Lg9gV65LRd0WtNqgneknDZoH3zXyzlcJexjHkRF\n" +
+        "qt4K6w9TDA2Erda3wE4BM4MCgl1Hc629kH3ROCyWTFuJAEZtNDJPgIc2LTRDhHNd\n" +
+        "+K937RhWU8lUnI2jJLmKdQDk2dnS1ZepFqA5Ynwza1qDSOgUqVw=\n" +
+        "=M81P\n" +
+        "-----END PGP SIGNATURE-----";
+
+      const onSignature = () => ({
+        code: NodeGit.Error.CODE.OK,
+        field: "gpgsig",
+        signedData
+      });
+
+      var expectedCommitId = "ef11571eb3590007712c7ee3b4a11cd9c6094e30";
+      var fileName = "newfile.txt";
+      var fileContent = "hello world";
+
+      var repo;
+      var index;
+      var treeOid;
+
+      return NodeGit.Repository.init(newRepoPath, 0)
+      .then(function(repoResult) {
+        repo = repoResult;
+        return fse.writeFile(path.join(repo.workdir(), fileName), fileContent);
+      })
+      .then(function() {
+        return repo.refreshIndex();
+      })
+      .then(function(indexResult) {
+        index = indexResult;
+      })
+      .then(function() {
+        return index.addByPath(fileName);
+      })
+      .then(function() {
+        return index.write();
+      })
+      .then(function() {
+        return index.writeTree();
+      })
+      .then(function(oidResult) {
+        treeOid = oidResult;
+        return Promise.all([
+          NodeGit.Signature.create("Foo Bar", "foo@bar.com", 123456789, 60),
+          NodeGit.Signature.create("Foo A Bar", "foo@bar.com", 987654321, 90)
+        ]);
+      })
+      .then(function(signatures) {
+        var author = signatures[0];
+        var committer = signatures[1];
+
+        return repo.createCommitWithSignature(
+          "HEAD",
+          author,
+          committer,
+          "message",
+          treeOid,
+          [],
+          onSignature);
+      })
+      .then(function(commitId) {
+        assert.equal(expectedCommitId, commitId);
+        return NodeGit.Commit.lookup(repo, commitId);
+      })
+      .then(function(commit) {
+        return commit.getSignature("gpgsig");
+      })
+      .then(function(signatureInfo) {
+        assert.equal(signedData, signatureInfo.signature);
+        return repo.getHeadCommit();
+      })
+      .then(function(headCommit) {
+        assert.equal(expectedCommitId, headCommit.id());
+      });
+    });
+
+    it("Can create a signed commit raw", function() {
+      var expectedCommitId = "cc1401eaac4e9e77190e98a9353b305f0c6313d8";
+
+      var signature = "-----BEGIN PGP SIGNATURE-----\n\n" +
+       "iQEcBAABCAAGBQJarBhIAAoJEE8pfTd/81lKQA4IAL8Mu5kc4B/MX9s4XB26Ahap\n" +
+       "n06kCx3RQ1KHMZIRomAjCnb48WieNVuy1y+Ut0RgfCxxrJ1ZnzFG3kF2bIKwIxNI\n" +
+       "tYIC76iWny+mrVnb2mjKYjn/3F4c4VJGENq9ITiV1WeE4yJ8dHw2ox2D+hACzTvQ\n" +
+       "KVroedk8BDFJxS6DFb20To35xbAVhwBnAGRcII4Wi5PPMFpqAhGLfq3Czv95ddSz\n" +
+       "BHlyp27+YWSpV0Og0dqOEhsdDYaPrOBGRcoRiqjue+l5tgK/QerLFZ4aovZzpuEP\n" +
+       "Xx1yZfqXIiy4Bo40qScSrdnmnp/kMq/NQGR3jYU+SleFHVKNFsya9UwurMaezY0=\n" +
+       "=eZzi\n-----END PGP SIGNATURE-----";
+
+      var commit_content = "tree f4661419a6fbbe865f78644fec722c023ce4b65f\n" +
+       "parent 32789a79e71fbc9e04d3eff7425e1771eb595150\n" +
+       "author Tyler Ang-Wanek <tylerw@axosoft.com> 1521227848 -0700\n" +
+       "committer Tyler Ang-Wanek <tylerw@axosoft.com> 1521227848 -0700\n\n" +
+       "GPG Signed commit\n";
+
+      var repo;
+      var commit;
+
+      return NodeGit.Repository.open(reposPath)
+      .then(function(repoResult) {
+        repo = repoResult;
+        return Commit.createWithSignature(
+          repo,
+          commit_content,
+          signature,
+          "gpgsig");
+      })
+      .then(function(commitId) {
+        assert.equal(expectedCommitId, commitId);
+        return NodeGit.Commit.lookup(repo, commitId);
+      })
+      .then(function(commitResult) {
+        commit = commitResult;
+        return commit.getSignature();
+      })
+      .then(function(signatureInfoDefault) {
+        assert.equal(signature, signatureInfoDefault.signature);
+        assert.equal(commit_content, signatureInfoDefault.signedData);
+
+        return commit.getSignature("gpgsig");
+      })
+      .then(function(signatureInfo) {
+        assert.equal(signature, signatureInfo.signature);
+        assert.equal(commit_content, signatureInfo.signedData);
+      });
+    });
+
     it("Can retrieve the gpg signature from a commit", function() {
       var expectedSignedData =
         "tree f4661419a6fbbe865f78644fec722c023ce4b65f\n" +
@@ -827,6 +1411,174 @@ describe("Commit", function() {
             expectedSignedData
           );
         });
+    });
+
+    it("Can be optionally skipped to create without signature", function() {
+      const onSignature = () => ({
+        code: NodeGit.Error.CODE.PASSTHROUGH
+      });
+
+      var test = this;
+      var expectedCommitId = "c9bffe040519231d32431c101bca4efc0917f64c";
+      var fileName = "newfile.txt";
+      var fileContent = "hello world";
+
+      var repo;
+      var index;
+      var treeOid;
+      var parent;
+
+      return NodeGit.Repository.open(reposPath)
+      .then(function(repoResult) {
+        repo = repoResult;
+        return fse.writeFile(path.join(repo.workdir(), fileName), fileContent);
+      })
+      .then(function() {
+        return repo.refreshIndex();
+      })
+      .then(function(indexResult) {
+        index = indexResult;
+      })
+      .then(function() {
+        return index.addByPath(fileName);
+      })
+      .then(function() {
+        return index.write();
+      })
+      .then(function() {
+        return index.writeTree();
+      })
+      .then(function(oidResult) {
+        treeOid = oidResult;
+        return NodeGit.Reference.nameToId(repo, "HEAD");
+      })
+      .then(function(head) {
+        return repo.getCommit(head);
+      })
+      .then(function(parentResult) {
+        parent = parentResult;
+        return Promise.all([
+          NodeGit.Signature.create("Foo Bar", "foo@bar.com", 123456789, 60),
+          NodeGit.Signature.create("Foo A Bar", "foo@bar.com", 987654321, 90)
+        ]);
+      })
+      .then(function(signatures) {
+        var author = signatures[0];
+        var committer = signatures[1];
+
+        return repo.createCommitWithSignature(
+          null,
+          author,
+          committer,
+          "message",
+          treeOid,
+          [parent],
+          onSignature
+        );
+      })
+      .then(function(commitId) {
+        assert.equal(expectedCommitId, commitId);
+        return NodeGit.Commit.lookup(repo, commitId);
+      })
+      .then(function(commit) {
+        return commit.getSignature("gpgsig")
+          .then(function() {
+            assert.fail("Should not have been able to retrieve gpgsig");
+          }, function(error) {
+            if (error && error.message === "this commit is not signed") {
+              return;
+            }
+            throw error;
+          });
+      })
+      .then(function() {
+        return reinitialize(test);
+      }, function(reason) {
+        return reinitialize(test)
+          .then(function() {
+            return Promise.reject(reason);
+          });
+      });
+    });
+
+    it("Will throw if the signing cb returns an error code", function() {
+      const onSignature = () => ({
+        code: NodeGit.Error.CODE.ERROR
+      });
+
+      var test = this;
+      var fileName = "newfile.txt";
+      var fileContent = "hello world";
+
+      var repo;
+      var index;
+      var treeOid;
+      var parent;
+
+      return NodeGit.Repository.open(reposPath)
+      .then(function(repoResult) {
+        repo = repoResult;
+        return fse.writeFile(path.join(repo.workdir(), fileName), fileContent);
+      })
+      .then(function() {
+        return repo.refreshIndex();
+      })
+      .then(function(indexResult) {
+        index = indexResult;
+      })
+      .then(function() {
+        return index.addByPath(fileName);
+      })
+      .then(function() {
+        return index.write();
+      })
+      .then(function() {
+        return index.writeTree();
+      })
+      .then(function(oidResult) {
+        treeOid = oidResult;
+        return NodeGit.Reference.nameToId(repo, "HEAD");
+      })
+      .then(function(head) {
+        return repo.getCommit(head);
+      })
+      .then(function(parentResult) {
+        parent = parentResult;
+        return Promise.all([
+          NodeGit.Signature.create("Foo Bar", "foo@bar.com", 123456789, 60),
+          NodeGit.Signature.create("Foo A Bar", "foo@bar.com", 987654321, 90)
+        ]);
+      })
+      .then(function(signatures) {
+        var author = signatures[0];
+        var committer = signatures[1];
+
+        return repo.createCommitWithSignature(
+          null,
+          author,
+          committer,
+          "message",
+          treeOid,
+          [parent],
+          onSignature
+        );
+      })
+      .then(function() {
+        assert.fail("createCommitWithSignature should have failed.");
+      }, function(error) {
+        if (error && error.errno === NodeGit.Error.CODE.ERROR) {
+          return;
+        }
+        throw error;
+      })
+      .then(function() {
+        return reinitialize(test);
+      }, function(reason) {
+        return reinitialize(test)
+          .then(function() {
+            return Promise.reject(reason);
+          });
+      });
     });
   });
 });

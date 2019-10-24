@@ -1,7 +1,6 @@
 var path = require("path");
 var assert = require("assert");
-var promisify = require("promisify-node");
-var fse = promisify(require("fs-extra"));
+var fse = require("fs-extra");
 var local = path.join.bind(path, __dirname);
 var _ = require("lodash");
 
@@ -44,9 +43,7 @@ describe("Clone", function() {
     var opts = {
         fetchOpts: {
           callbacks: {
-            certificateCheck: function() {
-              return 1;
-          }
+            certificateCheck: () => 0
         }
       }
     };
@@ -203,9 +200,7 @@ describe("Clone", function() {
     var opts = {
       fetchOpts: {
         callbacks: {
-          certificateCheck: function() {
-            return 1;
-          }
+          certificateCheck: () => 0
         }
       }
     };
@@ -222,9 +217,7 @@ describe("Clone", function() {
     var opts = {
       fetchOpts: {
         callbacks: {
-          certificateCheck: function() {
-            return 1;
-          },
+          certificateCheck: () => 0,
           credentials: function(url, userName) {
             return NodeGit.Cred.sshKeyFromAgent(userName);
           }
@@ -244,9 +237,7 @@ describe("Clone", function() {
     var opts = {
       fetchOpts: {
         callbacks: {
-          certificateCheck: function() {
-            return 1;
-          },
+          certificateCheck: () => 0,
           credentials: function(url, userName) {
             return NodeGit.Cred.sshKeyNew(
               userName,
@@ -270,9 +261,7 @@ describe("Clone", function() {
     var opts = {
       fetchOpts: {
         callbacks: {
-          certificateCheck: function() {
-            return 1;
-          },
+          certificateCheck: () => 0,
           credentials: function(url, userName) {
             return NodeGit.Cred.sshKeyNew(
               userName,
@@ -297,9 +286,7 @@ describe("Clone", function() {
     var opts = {
       fetchOpts: {
         callbacks: {
-          certificateCheck: function() {
-            return 1;
-          }
+          certificateCheck: () => 0
         }
       }
     };
@@ -329,9 +316,7 @@ describe("Clone", function() {
     return Clone(url, clonePath, {
       fetchOpts: {
         callbacks: {
-          certificateCheck: function() {
-            return 1;
-          },
+          certificateCheck: () => 0,
           credentials: function() {
             if (firstPass) {
               firstPass = false;

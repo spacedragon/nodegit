@@ -1,13 +1,9 @@
 {
-  "git_attr_foreach_cb": {
+  "git_apply_delta_cb": {
     "args": [
       {
-        "name": "name",
-        "cType": "const char *"
-      },
-      {
-        "name": "value",
-        "cType": "const char *"
+        "name": "delta",
+        "cType": "const git_diff_delta *"
       },
       {
         "name": "payload",
@@ -21,11 +17,33 @@
       "error": -1
     }
   },
-  "git_blob_chunk_cb": {
+  "git_apply_hunk_cb": {
     "args": [
       {
-        "name": "entry",
-        "cType": "const git_config_entry *"
+        "name": "hunk",
+        "cType": "const git_diff_hunk *"
+      },
+      {
+        "name": "payload",
+        "cType": "void *"
+      }
+    ],
+    "return": {
+      "type": "int",
+      "noResults": 1,
+      "success": 0,
+      "error": -1
+    }
+  },
+  "git_attr_foreach_cb": {
+    "args": [
+      {
+        "name": "name",
+        "cType": "const char *"
+      },
+      {
+        "name": "value",
+        "cType": "const char *"
       },
       {
         "name": "payload",
@@ -114,6 +132,32 @@
     "return": {
       "type": "int",
       "noResults": 1,
+      "success": 0,
+      "error": -1
+    }
+  },
+  "git_commit_signing_cb": {
+    "args": [
+      {
+        "name": "signature",
+        "cType": "git_buf *"
+      },
+      {
+        "name": "signature_field",
+        "cType": "git_buf *"
+      },
+      {
+        "name": "commit_content",
+        "cType": "const char *"
+      },
+      {
+        "name": "payload",
+        "cType": "void *"
+      }
+    ],
+    "return": {
+      "type": "int",
+      "noResults": -30,
       "success": 0,
       "error": -1
     }
@@ -264,7 +308,8 @@
     "args": [
       {
         "name": "diff_so_far",
-        "cType": "const git_diff *"
+        "cType": "const git_diff *",
+        "ignore": true
       },
       {
         "name": "delta_to_add",
@@ -285,11 +330,13 @@
       "success": 0,
       "error": -1
     }
-  },"git_diff_progress_cb": {
+  },
+  "git_diff_progress_cb": {
     "args": [
       {
         "name": "diff_so_far",
-        "cType": "const git_diff *"
+        "cType": "const git_diff *",
+        "ignore": true
       },
       {
         "name": "old_path",
@@ -311,101 +358,101 @@
       "error": -1
     }
   },
-  "git_filter_apply_fn": { 
-    "args": [ 
-      { 
-        "name": "self", 
-        "cType": "git_filter *" 
-      }, 
-      { 
-        "name": "payload", 
-        "cType": "void **" 
-      }, 
-      { 
-        "name": "to", 
-        "cType": "git_buf *" 
-      }, 
-      { 
-        "name": "from", 
-        "cType": "const git_buf *" 
-      }, 
-      { 
-        "name": "src", 
-        "cType": "const git_filter_source *" 
-      } 
-    ], 
-    "return": { 
-      "type": "int", 
-      "noResults": -30, 
-      "success": 0, 
-      "error": -1 
-    } 
-  }, 
-  "git_filter_check_fn": { 
-    "args": [ 
-      { 
-        "name": "self", 
-        "cType": "git_filter *" 
-      }, 
-      { 
+  "git_filter_apply_fn": {
+    "args": [
+      {
+        "name": "self",
+        "cType": "git_filter *"
+      },
+      {
         "name": "payload",
         "cType": "void **"
-      }, 
-      { 
+      },
+      {
+        "name": "to",
+        "cType": "git_buf *"
+      },
+      {
+        "name": "from",
+        "cType": "const git_buf *"
+      },
+      {
         "name": "src",
         "cType": "const git_filter_source *"
-      }, 
-      { 
-        "name": "attr_values", 
-        "cType": "const char **" 
-      } 
-    ], 
-    "return": { 
-      "type": "int", 
-      "noResults": -30, 
-      "success": 0, 
-      "error": -1 
-    } 
-  }, 
-  "git_filter_cleanup_fn": { 
-    "args": [ 
-      { 
-        "name": "self", 
-        "cType": "git_filter *" 
-      }, 
-      { 
-        "name": "payload", 
-        "cType": "void *" 
-      } 
-    ], 
-    "return": { 
-      "type": "void" 
-    } 
-  }, 
-  "git_filter_init_fn": { 
-    "args": [ 
-      { 
-        "name": "self", 
-        "cType": "git_filter *" 
-      } 
-    ], 
-    "return": { 
-      "type": "int", 
+      }
+    ],
+    "return": {
+      "type": "int",
+      "noResults": -30,
+      "success": 0,
+      "error": -1
+    }
+  },
+  "git_filter_check_fn": {
+    "args": [
+      {
+        "name": "self",
+        "cType": "git_filter *"
+      },
+      {
+        "name": "payload",
+        "cType": "void **"
+      },
+      {
+        "name": "src",
+        "cType": "const git_filter_source *"
+      },
+      {
+        "name": "attr_values",
+        "cType": "const char **"
+      }
+    ],
+    "return": {
+      "type": "int",
+      "noResults": -30,
+      "success": 0,
+      "error": -1
+    }
+  },
+  "git_filter_cleanup_fn": {
+    "args": [
+      {
+        "name": "self",
+        "cType": "git_filter *"
+      },
+      {
+        "name": "payload",
+        "cType": "void *"
+      }
+    ],
+    "return": {
+      "type": "void"
+    }
+  },
+  "git_filter_init_fn": {
+    "args": [
+      {
+        "name": "self",
+        "cType": "git_filter *"
+      }
+    ],
+    "return": {
+      "type": "int",
       "noResults": 0,
-      "success": 0, 
-      "error": -1 
-    } 
-  }, 
-  "git_filter_shutdown_fn": { 
-    "args": [ 
-      { 
-        "name": "self", 
-        "cType": "git_filter *" 
-      } 
-    ], 
-    "return": { 
-      "type": "void" 
-    } 
+      "success": 0,
+      "error": -1
+    }
+  },
+  "git_filter_shutdown_fn": {
+    "args": [
+      {
+        "name": "self",
+        "cType": "git_filter *"
+      }
+    ],
+    "return": {
+      "type": "void"
+    }
   },
   "git_index_matched_path_cb": {
     "args": [
@@ -489,7 +536,7 @@
     "args": [
       {
         "name": "out",
-        "cType": "git_repository **",
+        "cType": "git_remote **",
         "isReturn": true
       },
       {

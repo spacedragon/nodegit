@@ -1,8 +1,7 @@
 var assert = require("assert");
 var path = require("path");
-var promisify = require("promisify-node");
 var _ = require("lodash");
-var fse = promisify(require("fs-extra"));
+var fse = require("fs-extra");
 var local = path.join.bind(path, __dirname);
 
 function getLinesFromDiff(diff) {
@@ -415,7 +414,7 @@ describe("Diff", function() {
         })
         .then(function([headTree, index]) {
           const diffOptions = new NodeGit.DiffOptions();
-          if (index.caps() & Index.CAP.IGNORE_CASE !== 0) {
+          if (index.caps() & Index.CAPABILITY.IGNORE_CASE !== 0) {
             diffOptions.flags |= Diff.OPTION.IGNORE_CASE;
           }
 

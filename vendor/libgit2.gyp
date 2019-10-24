@@ -7,7 +7,9 @@
     "library%": "static_library",
     "openssl_enable_asm%": 0, # only supported with the Visual Studio 2012 (VC11) toolchain.
     "gcc_version%": 0,
-    "is_clang%": 0
+    "is_electron%": "<!(node ../utils/isBuildingForElectron.js <(node_root_dir))",
+    "is_clang%": 0,
+    "is_IBMi%": "<!(node -p \"os.platform() == 'aix' && os.type() == 'OS400' ? 1 : 0\")"
   },
   "targets": [
     {
@@ -25,7 +27,6 @@
       "dependencies": [
         "zlib",
         "http_parser/http_parser.gyp:http_parser",
-        "openssl/openssl.gyp:openssl",
         "libssh2"
       ],
       "sources": [
@@ -33,6 +34,8 @@
         "libgit2/include/git2/sys/merge.h",
         "libgit2/include/git2/sys/time.h",
         "libgit2/include/git2/worktree.h",
+        "libgit2/src/alloc.c",
+        "libgit2/src/alloc.h",
         "libgit2/src/annotated_commit.c",
         "libgit2/src/annotated_commit.h",
         "libgit2/src/apply.c",
@@ -71,16 +74,17 @@
         "libgit2/src/commit.c",
         "libgit2/src/commit.h",
         "libgit2/src/common.h",
+        "libgit2/src/config_backend.h",
         "libgit2/src/config_cache.c",
+        "libgit2/src/config_entries.c",
+        "libgit2/src/config_entries.h",
         "libgit2/src/config_file.c",
-        "libgit2/src/config_file.h",
+        "libgit2/src/config_mem.c",
         "libgit2/src/config_parse.c",
         "libgit2/src/config_parse.h",
         "libgit2/src/config.c",
         "libgit2/src/config.h",
         "libgit2/src/crlf.c",
-        "libgit2/src/streams/curl.c",
-        "libgit2/src/streams/curl.h",
         "libgit2/src/date.c",
         "libgit2/src/delta.c",
         "libgit2/src/delta.h",
@@ -134,6 +138,8 @@
         "libgit2/src/iterator.c",
         "libgit2/src/iterator.h",
         "libgit2/src/khash.h",
+        "libgit2/src/mailmap.c",
+        "libgit2/src/mailmap.h",
         "libgit2/src/map.h",
         "libgit2/src/merge_driver.c",
         "libgit2/src/merge_file.c",
@@ -164,8 +170,12 @@
         "libgit2/src/oidarray.h",
         "libgit2/src/oidmap.c",
         "libgit2/src/oidmap.h",
+        "libgit2/src/streams/mbedtls.c",
+        "libgit2/src/streams/mbedtls.h",
         "libgit2/src/streams/openssl.c",
         "libgit2/src/streams/openssl.h",
+        "libgit2/src/streams/registry.c",
+        "libgit2/src/streams/registry.h",
         "libgit2/src/pack-objects.c",
         "libgit2/src/pack-objects.h",
         "libgit2/src/pack.c",
@@ -191,6 +201,8 @@
         "libgit2/src/proxy.c",
         "libgit2/src/push.c",
         "libgit2/src/push.h",
+        "libgit2/src/reader.c",
+        "libgit2/src/reader.h",
         "libgit2/src/rebase.c",
         "libgit2/src/refdb_fs.c",
         "libgit2/src/refdb_fs.h",
@@ -224,6 +236,8 @@
         "libgit2/src/stash.c",
         "libgit2/src/status.c",
         "libgit2/src/status.h",
+        "libgit2/src/stdalloc.c",
+        "libgit2/src/stdalloc.h",
         "libgit2/src/strmap.c",
         "libgit2/src/strmap.h",
         "libgit2/src/strnlen.h",
@@ -286,6 +300,13 @@
       ],
       "conditions": [
         ["OS=='mac'", {
+            "conditions": [
+              ["<(is_electron) == 1", {
+                "include_dirs": [
+                  "openssl/include"
+                ]
+              }]
+            ],
             "defines": [
                 "GIT_SECURE_TRANSPORT",
                 "GIT_USE_STAT_MTIMESPEC"
@@ -303,13 +324,8 @@
                 }
             }
         }],
-        ["OS=='mac' or OS=='linux' or OS.endswith('bsd')", {
-          "cflags": [
-            "-DGIT_CURL",
-            "<!(curl-config --cflags)"
-          ],
+        ["OS=='mac' or OS=='linux' or OS.endswith('bsd') or <(is_IBMi) == 1", {
           "defines": [
-            "GIT_CURL",
             "GIT_SHA1_OPENSSL"
           ],
           "sources": [
@@ -318,7 +334,7 @@
             "libgit2/src/streams/tls.h"
           ]
         }],
-        ["OS=='linux' or OS.endswith('bsd')" , {
+        ["OS=='linux' or OS.endswith('bsd') or <(is_IBMi) == 1", {
           "cflags": [
             "-DGIT_SSH",
             "-DGIT_SSL",
@@ -327,6 +343,11 @@
           "defines": [
             "GIT_OPENSSL",
             "GIT_USE_STAT_MTIM"
+          ]
+        }],
+        ["<(is_IBMi) == 1", {
+          "include_dirs": [
+            "/QOpenSys/pkgs/include",
           ]
         }],
         ["OS=='win'", {
@@ -356,6 +377,9 @@
                   ],
                 },
               }],
+              ["<(is_electron) == 1", {
+                "include_dirs": ["openssl/include"]
+              }]
             ],
           },
           "msvs_disabled_warnings": [
@@ -437,7 +461,7 @@
       ],
       "direct_dependent_settings": {
         "include_dirs": [
-          "libgit2/include",
+          "libgit2/include"
         ],
       },
     },
@@ -519,8 +543,8 @@
         ".",
         "libssh2/include",
       ],
-      "dependencies": [
-        "openssl/openssl.gyp:openssl"
+      "hard_dependencies": [
+        "../binding.gyp:configureLibssh2"
       ],
       "direct_dependent_settings": {
         "include_dirs": [
@@ -528,10 +552,30 @@
         ]
       },
       "conditions": [
+        ["OS=='mac' and <(is_electron) == 1", {
+          "include_dirs": [
+            "openssl/include",
+          ]
+        }],
         ["OS=='win'", {
+          "conditions": [
+            ["<(is_electron) == 1", {
+              "include_dirs": [
+                "openssl/include"
+              ],
+              "libraries": [
+                "<(module_root_dir)/vendor/openssl/lib/libssl.lib",
+                "<(module_root_dir)/vendor/openssl/lib/libcrypto.lib"
+              ]
+            }, {
+              "defines": [
+                "OPENSSL_NO_RIPEMD",
+                "OPENSSL_NO_CAST"
+              ]
+            }]
+          ],
           "include_dirs": [
             "libssh2/src",
-            "libssh2/win32",
             "libssh2/include"
           ],
           "defines!": [
@@ -540,10 +584,14 @@
           "direct_dependent_settings": {
             "include_dirs": [
               "libssh2/src",
-              "libssh2/win32",
               "libssh2/include"
             ]
           }
+        }],
+        ["<(is_IBMi) == 1", {
+          "include_dirs": [
+            "/QOpenSys/pkgs/include"
+          ]
         }],
       ]
     }

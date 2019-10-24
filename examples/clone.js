@@ -1,6 +1,5 @@
 var nodegit = require("../");
-var promisify = require("promisify-node");
-var fse = promisify(require("fs-extra"));
+var fse = require("fs-extra");
 var path = "/tmp/nodegit-clone-demo";
 
 fse.remove(path).then(function() {
@@ -15,7 +14,7 @@ fse.remove(path).then(function() {
           certificateCheck: function() {
             // github will fail cert check on some OSX machines
             // this overrides that check
-            return 1;
+            return 0;
           }
         }
       }

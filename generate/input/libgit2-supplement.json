@@ -86,29 +86,26 @@
   },
   "new" : {
     "functions": {
-      "git_branch_remote_name": {
+      "git_blame_get_hunk_count": {
         "type": "function",
-        "file": "branch.h",
+        "file": "blame.h",
         "args": [
           {
-            "name": "out",
-            "type": "git_buf *"
-          },
-          {
-            "name": "repo",
-            "type": "git_repository *"
-          },
-          {
-            "name": "canonical_branch_name",
-            "type": "const char *"
+            "name": "blame",
+            "type": "git_blame *"
           }
         ],
-        "isAsync": true,
         "return": {
-          "type": "int",
-          "isErrorCode": true
+          "type": "int"
         },
-        "group": "branch"
+        "group": "blame"
+      },
+      "git_clone": {
+        "isManual": true,
+        "cFile": "generate/templates/manual/clone/clone.cc",
+        "isAsync": true,
+        "isPrototypeMethod": false,
+        "group": "clone"
       },
       "git_commit_extract_signature": {
         "args": [
@@ -139,6 +136,63 @@
         "isAsync": true,
         "isPrototypeMethod": false,
         "group": "commit",
+        "return": {
+          "type": "int",
+          "isErrorCode": true
+        }
+      },
+      "git_filter_list_load": {
+        "isManual": true,
+        "cFile": "generate/templates/manual/filter_list/load.cc",
+        "isAsync": true,
+        "isPrototypeMethod": false,
+        "group": "filter_list"
+      },
+      "git_filter_source_filemode": {
+        "type": "function",
+        "file": "filter.h",
+        "args": [
+          {
+            "name": "src",
+            "type": "const git_filter_source *"
+          }
+        ],
+        "return": {
+          "type": "uint16_t"
+        },
+        "group": "filter_source"
+      },
+      "git_filter_source_flags": {
+        "type": "function",
+        "file": "filter.h",
+        "args": [
+          {
+            "name": "src",
+            "type": "const git_filter_source *"
+          }
+        ],
+        "return": {
+          "type": "uint32_t"
+        },
+        "group": "filter_source"
+      },
+      "git_filter_source_repo": {
+        "args": [
+          {
+            "name": "out",
+            "type": "git_repository **"
+          },
+          {
+            "name": "src",
+            "type": "const git_filter_source *"
+          }
+        ],
+        "isManual": true,
+        "cFile": "generate/templates/manual/filter_source/repo.cc",
+        "isAsync": true,
+        "isPrototypeMethod": true,
+        "type": "function",
+        "group": "filter_source",
         "return": {
           "type": "int",
           "isErrorCode": true
@@ -265,9 +319,14 @@
             "type": "const char *"
           },
           {
+            "name": "max_result",
+            "type": "int"
+          },
+          {
             "name": "max_count",
             "type": "int"
           },
+
           {
             "name": "out",
             "type": "std::vector< std::pair<git_commit *, std::pair<char *, git_delta_t> > *> *"
@@ -328,7 +387,28 @@
           "git_annotated_commit_from_ref",
           "git_annotated_commit_from_revspec",
           "git_annotated_commit_id",
-          "git_annotated_commit_lookup"
+          "git_annotated_commit_lookup",
+          "git_annotated_commit_ref"
+        ]
+      ],
+      [
+        "config_iterator",
+        [
+          "git_config_iterator_free",
+          "git_config_iterator_new",
+          "git_config_iterator_glob_new",
+          "git_config_multivar_iterator_new",
+          "git_config_next"
+        ]
+      ],
+      [
+        "diff_stats",
+        [
+          "git_diff_stats_files_changed",
+          "git_diff_stats_insertions",
+          "git_diff_stats_deletions",
+          "git_diff_stats_to_buf",
+          "git_diff_stats_free"
         ]
       ],
       [
@@ -353,6 +433,49 @@
         ]
       ],
       [
+        "index_conflict_iterator",
+        [
+          "git_index_conflict_iterator_free",
+          "git_index_conflict_iterator_new",
+          "git_index_conflict_next"
+        ]
+      ],
+      [
+        "index_iterator",
+        [
+          "git_index_iterator_free",
+          "git_index_iterator_new",
+          "git_index_iterator_next"
+        ]
+      ],
+      [
+        "index_name_entry",
+        [
+          "git_index_name_add",
+          "git_index_name_clear",
+          "git_index_name_entrycount",
+          "git_index_name_get_byindex"
+        ]
+      ],
+      [
+        "index_reuc_entry",
+        [
+          "git_index_reuc_add",
+          "git_index_reuc_clear",
+          "git_index_reuc_entrycount",
+          "git_index_reuc_find",
+          "git_index_reuc_get_byindex",
+          "git_index_reuc_get_bypath",
+          "git_index_reuc_remove"
+        ]
+      ],
+      [
+        "merge_file_result",
+        [
+          "git_merge_file_result_free"
+        ]
+      ],
+      [
         "odb_object",
         [
           "git_odb_object_data",
@@ -364,9 +487,37 @@
         ]
       ],
       [
+        "odb_stream",
+        [
+          "git_odb_stream_finalize_write",
+          "git_odb_stream_free",
+          "git_odb_stream_read",
+          "git_odb_stream_write"
+        ]
+      ],
+      [
+        "oid_shorten",
+        [
+          "git_oid_shorten_add",
+          "git_oid_shorten_free",
+          "git_oid_shorten_new"
+        ]
+      ],
+      [
         "patch",
         [
           "git_patch_convenient_from_diff"
+        ]
+      ],
+      [
+        "pathspec_match_list",
+        [
+          "git_pathspec_match_list_diff_entry",
+          "git_pathspec_match_list_entry",
+          "git_pathspec_match_list_entrycount",
+          "git_pathspec_match_list_failed_entry",
+          "git_pathspec_match_list_failed_entrycount",
+          "git_pathspec_match_list_free"
         ]
       ],
       [
@@ -415,51 +566,32 @@
     ],
     "types": [
       [
-        "git_stash_apply_progress_t",
+        "git_apply_options",
         {
-          "type": "enum",
+          "type": "sctruct",
           "fields": [
             {
-              "type": "int",
-              "name": "GIT_STASH_APPLY_PROGRESS_NONE",
-              "value": 0
+              "type": "unsigned int",
+              "name": "version"
             },
             {
-              "type": "int",
-              "name": "GIT_STASH_APPLY_PROGRESS_LOADING_STASH",
-              "value": 1
+              "type": "git_apply_delta_cb",
+              "name": "delta_cb"
             },
             {
-              "type": "int",
-              "name": "GIT_STASH_APPLY_PROGRESS_ANALYZE_INDEX",
-              "value": 2
+              "type": "git_apply_hunk_cb",
+              "name": "hunk_cb"
             },
             {
-              "type": "int",
-              "name": "GIT_STASH_APPLY_PROGRESS_ANALYZE_MODIFIED",
-              "value": 3
-            },
-            {
-              "type": "int",
-              "name": "GIT_STASH_APPLY_PROGRESS_ANALYZE_UNTRACKED",
-              "value": 4
-            },
-            {
-              "type": "int",
-              "name": "GIT_STASH_APPLY_PROGRESS_CHECKOUT_UNTRACKED",
-              "value": 5
-            },
-            {
-              "type": "int",
-              "name": "GIT_STASH_APPLY_PROGRESS_CHECKOUT_MODIFIED",
-              "value": 6
-            },
-            {
-              "type": "int",
-              "name": "GIT_STASH_APPLY_PROGRESS_DONE",
-              "value": 7
+              "type": "void *",
+              "name": "payload"
             }
-          ]
+          ],
+          "used": {
+            "needs": [
+              "git_apply_init_options"
+            ]
+          }
         }
       ],
       [
@@ -484,6 +616,72 @@
               "ignore": true
             }
           ]
+        }
+      ],
+      [
+        "git_describe_format_options",
+        {
+          "type": "struct",
+          "fields": [
+            {
+              "type": "unsigned int",
+              "name": "version"
+            },
+            {
+              "type": "unsigned int",
+              "name": "abbreviated_size"
+            },
+            {
+              "type": "int",
+              "name": "always_use_long_format"
+            },
+            {
+              "type": "const char *",
+              "name": "dirty_suffix"
+            }
+          ],
+          "used": {
+            "needs": [
+              "git_describe_init_format_options"
+            ]
+          }
+        }
+      ],
+      [
+        "git_describe_options",
+        {
+          "type": "struct",
+          "fields": [
+            {
+              "type": "unsigned int",
+              "name": "version"
+            },
+            {
+              "type": "unsigned int",
+              "name": "max_candidates_tags"
+            },
+            {
+              "type": "unsigned int",
+              "name": "describe_strategy"
+            },
+            {
+              "type": "const char *",
+              "name": "pattern"
+            },
+            {
+              "type": "int",
+              "name": "only_follow_first_parent"
+            },
+            {
+              "type": "int",
+              "name": "show_commit_oid_as_fallback"
+            }
+          ],
+          "used": {
+            "needs": [
+              "git_describe_init_options"
+            ]
+          }
         }
       ],
       [
@@ -656,6 +854,14 @@
             {
               "type": "git_merge_options",
               "name": "merge_options"
+            },
+            {
+              "type": "git_commit_signing_cb",
+              "name": "signing_cb"
+            },
+            {
+              "type": "void *",
+              "name": "payload"
             }
           ],
           "used": {
@@ -725,6 +931,39 @@
         }
       ],
       [
+        "git_remote_create_options",
+        {
+          "type": "struct",
+          "fields": [
+            {
+              "type": "unsigned int",
+              "name": "version"
+            },
+            {
+              "type": "git_repository *",
+              "name": "repository"
+            },
+            {
+              "type": "const char *",
+              "name": "name"
+            },
+            {
+              "type": "const char *",
+              "name": "fetchspec"
+            },
+            {
+              "type": "unsigned int",
+              "name": "flags"
+            }
+          ],
+          "used": {
+            "needs": [
+              "git_remote_create_init_options"
+            ]
+          }
+        }
+      ],
+      [
         "git_remote_head",
         {
           "types": "struct",
@@ -758,15 +997,51 @@
         }
       ],
       [
-        "git_time_t",
+        "git_stash_apply_progress_t",
         {
-          "type": "enum"
-        }
-      ],
-      [
-        "git_trace_level_t",
-        {
-          "type": "enum"
+          "type": "enum",
+          "fields": [
+            {
+              "type": "int",
+              "name": "GIT_STASH_APPLY_PROGRESS_NONE",
+              "value": 0
+            },
+            {
+              "type": "int",
+              "name": "GIT_STASH_APPLY_PROGRESS_LOADING_STASH",
+              "value": 1
+            },
+            {
+              "type": "int",
+              "name": "GIT_STASH_APPLY_PROGRESS_ANALYZE_INDEX",
+              "value": 2
+            },
+            {
+              "type": "int",
+              "name": "GIT_STASH_APPLY_PROGRESS_ANALYZE_MODIFIED",
+              "value": 3
+            },
+            {
+              "type": "int",
+              "name": "GIT_STASH_APPLY_PROGRESS_ANALYZE_UNTRACKED",
+              "value": 4
+            },
+            {
+              "type": "int",
+              "name": "GIT_STASH_APPLY_PROGRESS_CHECKOUT_UNTRACKED",
+              "value": 5
+            },
+            {
+              "type": "int",
+              "name": "GIT_STASH_APPLY_PROGRESS_CHECKOUT_MODIFIED",
+              "value": 6
+            },
+            {
+              "type": "int",
+              "name": "GIT_STASH_APPLY_PROGRESS_DONE",
+              "value": 7
+            }
+          ]
         }
       ],
       [
@@ -835,6 +1110,18 @@
         }
       ],
       [
+        "git_time_t",
+        {
+          "type": "enum"
+        }
+      ],
+      [
+        "git_trace_level_t",
+        {
+          "type": "enum"
+        }
+      ],
+      [
         "git_worktree_add_options",
         {
           "type": "struct",
@@ -899,26 +1186,60 @@
         "git_annotated_commit_from_ref",
         "git_annotated_commit_from_revspec",
         "git_annotated_commit_id",
-        "git_annotated_commit_lookup"
+        "git_annotated_commit_lookup",
+        "git_annotated_commit_ref"
       ]
     },
-    "filter": {
+    "config": {
       "functions": [
-        "git_filter_list_new",
-        "git_filter_list_push",
-        "git_filter_list_stream_blob",
-        "git_filter_list_stream_data",
-        "git_filter_list_stream_file",
-        "git_filter_source_filemode",
-        "git_filter_source_flags",
-        "git_filter_source_id",
-        "git_filter_source_mode",
-        "git_filter_source_path",
-        "git_filter_source_repo"
+        "git_config_iterator_free",
+        "git_config_iterator_new",
+        "git_config_iterator_glob_new",
+        "git_config_multivar_iterator_new",
+        "git_config_next"
+      ]
+    },
+    "diff": {
+      "functions": [
+        "git_diff_stats_files_changed",
+        "git_diff_stats_insertions",
+        "git_diff_stats_deletions",
+        "git_diff_stats_to_buf",
+        "git_diff_stats_free"
+      ]
+    },
+    "index": {
+      "functions": [
+        "git_index_conflict_iterator_free",
+        "git_index_conflict_iterator_new",
+        "git_index_conflict_next",
+        "git_index_iterator_free",
+        "git_index_iterator_new",
+        "git_index_iterator_next",
+        "git_index_name_add",
+        "git_index_name_clear",
+        "git_index_name_entrycount",
+        "git_index_name_get_byindex",
+        "git_index_reuc_add",
+        "git_index_reuc_clear",
+        "git_index_reuc_entrycount",
+        "git_index_reuc_find",
+        "git_index_reuc_get_byindex",
+        "git_index_reuc_get_bypath",
+        "git_index_reuc_remove"
       ]
     },
     "merge": {
       "functions": [
+        "git_merge_driver_lookup",
+        "git_merge_driver_register",
+        "git_merge_driver_source_ancestor",
+        "git_merge_driver_source_file_options",
+        "git_merge_driver_source_ours",
+        "git_merge_driver_source_repo",
+        "git_merge_driver_source_theirs",
+        "git_merge_driver_unregister",
+        "git_merge_file_result_free",
         "git_merge_head_free",
         "git_merge_head_from_fetchhead",
         "git_merge_head_from_id",
@@ -933,16 +1254,43 @@
     },
     "odb": {
       "functions": [
+        "git_odb_backend_loose",
+        "git_odb_backend_malloc",
+        "git_odb_backend_one_pack",
+        "git_odb_backend_pack",
         "git_odb_object_data",
         "git_odb_object_dup",
         "git_odb_object_free",
         "git_odb_object_id",
         "git_odb_object_size",
-        "git_odb_object_type"
+        "git_odb_object_type",
+        "git_odb_stream_finalize_write",
+        "git_odb_stream_free",
+        "git_odb_stream_read",
+        "git_odb_stream_write"
+      ]
+    },
+    "oid": {
+      "functions": [
+        "git_oid_shorten_add",
+        "git_oid_shorten_free",
+        "git_oid_shorten_new"
+      ]
+    },
+    "pathspec": {
+      "functions": [
+        "git_pathspec_match_list_diff_entry",
+        "git_pathspec_match_list_entry",
+        "git_pathspec_match_list_entrycount",
+        "git_pathspec_match_list_failed_entry",
+        "git_pathspec_match_list_failed_entrycount",
+        "git_pathspec_match_list_free"
       ]
     },
     "reflog": {
       "functions": [
+        "git_reflog_entry__alloc",
+        "git_reflog_entry__free",
         "git_reflog_entry_committer",
         "git_reflog_entry_id_new",
         "git_reflog_entry_id_old",
@@ -959,6 +1307,7 @@
     },
     "tree": {
       "functions": [
+        "git_tree_entry_dup",
         "git_tree_entry_filemode",
         "git_tree_entry_filemode_raw",
         "git_tree_entry_free",
@@ -969,12 +1318,5 @@
       ]
     }
   },
-  "groups": {
-    "branch": [
-      "git_branch_remote_name"
-    ],
-    "stash": [
-      "git_stash_save"
-    ]
-  }
+  "groups": {}
 }

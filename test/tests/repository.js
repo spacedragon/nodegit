@@ -1,7 +1,6 @@
 var assert = require("assert");
 var path = require("path");
-var promisify = require("promisify-node");
-var fse = promisify(require("fs-extra"));
+var fse = require("fs-extra");
 var local = path.join.bind(path, __dirname);
 var IndexUtils = require("../utils/index_setup");
 var RepoUtils = require("../utils/repository_setup");
@@ -110,10 +109,21 @@ describe("Repository", function() {
       });
   });
 
-  it("can get the default signature", function() {
-    var sig = this.repository.defaultSignature();
+  it("can get a reference commit", function() {
+    return this.repository.getReferenceCommit("master")
+      .then(function(commit) {
+        assert.equal(
+          "32789a79e71fbc9e04d3eff7425e1771eb595150",
+          commit.toString()
+        );
+      });
+  });
 
-    assert(sig instanceof Signature);
+  it("can get the default signature", function() {
+    this.repository.defaultSignature()
+      .then((sig) => {
+        assert(sig instanceof Signature);
+      });
   });
 
   it("gets statuses with StatusFile", function() {
@@ -176,9 +186,7 @@ describe("Repository", function() {
       credentials: function(url, userName) {
         return NodeGit.Cred.sshKeyFromAgent(userName);
       },
-      certificateCheck: function() {
-        return 1;
-      }
+      certificateCheck: () => 0
     })
     .then(function() {
       return repo.fetchheadForeach(function(refname, remoteUrl, oid, isMerge) {
@@ -200,13 +208,23 @@ describe("Repository", function() {
     });
   });
 
-  it("can discover if a path is part of a repository", function() {
+  function discover(ceiling) {
     var testPath = path.join(reposPath, "lib", "util", "normalize_oid.js");
     var expectedPath = path.join(reposPath, ".git");
-    return NodeGit.Repository.discover(testPath, 0, "")
+    return NodeGit.Repository.discover(testPath, 0, ceiling)
       .then(function(foundPath) {
         assert.equal(expectedPath, foundPath);
       });
+  }
+
+  it("can discover if a path is part of a repository, null ceiling",
+      function() {
+    return discover(null);
+  });
+
+  it("can discover if a path is part of a repository, empty ceiling",
+      function() {
+    return discover("");
   });
 
   it("can create a repo using initExt", function() {
@@ -256,16 +274,21 @@ describe("Repository", function() {
   });
 
   it("can commit on head on a empty repo with createCommitOnHead", function() {
-    var fileName = "my-new-file-that-shouldnt-exist.file";
-    var fileContent = "new file from repository test";
-    var repo = this.emptyRepo;
-    var filePath = path.join(repo.workdir(), fileName);
-    var authSig = repo.defaultSignature();
-    var commitSig = repo.defaultSignature();
-    var commitMsg = "Doug this has been commited";
+    const fileName = "my-new-file-that-shouldnt-exist.file";
+    const fileContent = "new file from repository test";
+    const repo = this.emptyRepo;
+    const filePath = path.join(repo.workdir(), fileName);
+    const commitMsg = "Doug this has been commited";
+    let authSig;
+    let commitSig;
 
-    return fse.writeFile(filePath, fileContent)
-      .then(function() {
+    return repo.defaultSignature()
+      .then((sig) => {
+        authSig = sig;
+        commitSig = sig;
+        return fse.writeFile(filePath, fileContent);
+      })
+      .then(() => {
         return repo.createCommitOnHead(
           [fileName],
           authSig,
@@ -273,7 +296,7 @@ describe("Repository", function() {
           commitMsg
         );
       })
-      .then(function(oidResult) {
+      .then((oidResult) => {
         return repo.getHeadCommit()
           .then(function(commit) {
             assert.equal(

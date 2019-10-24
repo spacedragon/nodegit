@@ -5,10 +5,14 @@ NAN_METHOD(GitRevwalk::FileHistoryWalk)
   }
 
   if (info.Length() == 1 || !info[1]->IsNumber()) {
-    return Nan::ThrowError("Max count is required and must be a number.");
+    return Nan::ThrowError("Max result is required and must be a number.");
   }
 
-  if (info.Length() == 2 || !info[2]->IsFunction()) {
+  if (info.Length() == 2 || !info[2]->IsNumber()) {
+      return Nan::ThrowError("Max count is required and must be a number.");
+  }
+
+  if (info.Length() == 3 || !info[3]->IsFunction()) {
     return Nan::ThrowError("Callback is required and must be a Function.");
   }
 
@@ -18,12 +22,13 @@ NAN_METHOD(GitRevwalk::FileHistoryWalk)
   baton->error = NULL;
   String::Utf8Value from_js_file_path(info[0]->ToString());
   baton->file_path = strdup(*from_js_file_path);
-  baton->max_count = Nan::To<unsigned int>(info[1]).FromJust();
+  baton->max_result = Nan::To<unsigned int>(info[1]).FromJust();
+  baton->max_count = Nan::To<unsigned int>(info[2]).FromJust();
   baton->out = new std::vector< std::pair<git_commit *, std::pair<char *, git_delta_t> > *>;
-  baton->out->reserve(baton->max_count);
+  baton->out->reserve(baton->max_result > 0 ? baton->max_result : baton->max_count);
   baton->walk = Nan::ObjectWrap::Unwrap<GitRevwalk>(info.This())->GetValue();
 
-  Nan::Callback *callback = new Nan::Callback(Local<Function>::Cast(info[2]));
+  Nan::Callback *callback = new Nan::Callback(Local<Function>::Cast(info[3]));
   FileHistoryWalkWorker *worker = new FileHistoryWalkWorker(baton, callback);
   worker->SaveToPersistent("fileHistoryWalk", info.This());
 
@@ -35,7 +40,7 @@ void GitRevwalk::FileHistoryWalkWorker::Execute()
 {
   git_repository *repo = git_revwalk_repository(baton->walk);
   git_oid *nextOid = (git_oid *)malloc(sizeof(git_oid));
-  giterr_clear();
+  git_error_clear();
   for (
     unsigned int i = 0;
     i < baton->max_count && (baton->error_code = git_revwalk_next(nextOid, baton->walk)) == GIT_OK;
@@ -104,8 +109,8 @@ void GitRevwalk::FileHistoryWalkWorker::Execute()
       }
 
       const git_diff_delta *delta = git_patch_get_delta(nextPatch);
-      bool isEqualOldFile = !strcmp(delta->old_file.path, baton->file_path);
-      bool isEqualNewFile = !strcmp(delta->new_file.path, baton->file_path);
+      bool isEqualOldFile = !strncmp(delta->old_file.path, baton->file_path, strlen(baton->file_path));
+      bool isEqualNewFile = !strncmp(delta->new_file.path, baton->file_path, strlen(baton->file_path));
 
       if (isEqualNewFile) {
         if (delta->status == GIT_DELTA_ADDED || delta->status == GIT_DELTA_DELETED) {
@@ -173,8 +178,8 @@ void GitRevwalk::FileHistoryWalkWorker::Execute()
         }
 
         const git_diff_delta *delta = git_patch_get_delta(nextPatch);
-        bool isEqualOldFile = !strcmp(delta->old_file.path, baton->file_path);
-        bool isEqualNewFile = !strcmp(delta->new_file.path, baton->file_path);
+        bool isEqualOldFile = !strncmp(delta->old_file.path, baton->file_path, strlen(baton->file_path));
+        bool isEqualNewFile = !strncmp(delta->new_file.path, baton->file_path, strlen(baton->file_path));
         int oldLen = strlen(delta->old_file.path);
         int newLen = strlen(delta->new_file.path);
         char *outPair = new char[oldLen + newLen + 2];
@@ -185,7 +190,7 @@ void GitRevwalk::FileHistoryWalkWorker::Execute()
 
         if (isEqualNewFile) {
           std::pair<git_commit *, std::pair<char *, git_delta_t> > *historyEntry;
-          if (!isEqualOldFile) {
+          if (!isEqualOldFile || delta->status == GIT_DELTA_RENAMED) {
             historyEntry = new std::pair<git_commit *, std::pair<char *, git_delta_t> >(
               nextCommit,
               std::pair<char *, git_delta_t>(strdup(outPair), delta->status)
@@ -227,13 +232,17 @@ void GitRevwalk::FileHistoryWalkWorker::Execute()
     if (baton->error_code != GIT_OK) {
       break;
     }
+
+    if (baton->max_result >=0 && baton->out->size() >= baton->max_result) {
+      break;
+    }
   }
 
   free(nextOid);
 
   if (baton->error_code != GIT_OK) {
     if (baton->error_code != GIT_ITEROVER) {
-      baton->error = git_error_dup(giterr_last());
+      baton->error = git_error_dup(git_error_last());
 
       while(!baton->out->empty())
       {

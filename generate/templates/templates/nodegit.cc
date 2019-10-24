@@ -5,6 +5,7 @@
 #include <map>
 #include <algorithm>
 #include <set>
+#include <sys/stat.h>
 
 #include <openssl/crypto.h>
 
@@ -70,7 +71,7 @@ void LockMasterSetStatus(const FunctionCallbackInfo<Value>& info) {
 
   // convert the first argument to Status
   if(info.Length() >= 0 && info[0]->IsNumber()) {
-    v8::Local<v8::Int32> value = info[0]->ToInt32();
+    v8::Local<v8::Int32> value = info[0]->ToInt32(v8::Isolate::GetCurrent());
     LockMaster::Status status = static_cast<LockMaster::Status>(value->Value());
     if(status >= LockMaster::Disabled && status <= LockMaster::Enabled) {
       LockMaster::SetStatus(status);
@@ -105,8 +106,8 @@ void OpenSSL_LockingCallback(int mode, int type, const char *, int) {
   }
 }
 
-unsigned long OpenSSL_IDCallback() {
-  return (unsigned long)uv_thread_self();
+void OpenSSL_IDCallback(CRYPTO_THREADID *id) {
+  CRYPTO_THREADID_set_numeric(id, (unsigned long)uv_thread_self());
 }
 
 void OpenSSL_ThreadSetup() {
@@ -117,10 +118,37 @@ void OpenSSL_ThreadSetup() {
   }
 
   CRYPTO_set_locking_callback(OpenSSL_LockingCallback);
-  CRYPTO_set_id_callback(OpenSSL_IDCallback);
+  CRYPTO_THREADID_set_callback(OpenSSL_IDCallback);
 }
 
+inline bool file_exists (const char* name) {
+  struct stat buffer;   
+  return (stat (name, &buffer) == 0); 
+}
+
+extern "C" int git_openssl__set_cert_location(const char *file, const char *path);
+static void FindRootCerts() {
+# ifdef _FIND_ROOT_CERTS
+  static const char *path_candiates[4] = { "/etc/ssl/certs/ca-certificates.crt",
+                 "/etc/pki/tls/certs/ca-bundle.crt",
+                 "/usr/share/ssl/certs/ca-bundle.crt",
+                 "/usr/local/share/certs/ca-root-nss.crt" };
+  static const char* root_cert = nullptr;
+  if (root_cert == nullptr) {
+    for (size_t i = 0; i < sizeof(path_candiates) / sizeof(path_candiates[0]); i++){
+        const char* path = path_candiates[i];
+        if (file_exists(path)) {
+          if (git_openssl__set_cert_location(path, nullptr) == 0) {
+            root_cert = path;
+            break;
+          };
+        }
+    }
+  }
+# endif
+}
 ThreadPool libgit2ThreadPool(10, uv_default_loop());
+
 
 extern "C" void init(v8::Local<v8::Object> target) {
   // Initialize thread safety in openssl and libssh2
@@ -128,7 +156,9 @@ extern "C" void init(v8::Local<v8::Object> target) {
   init_ssh2();
   // Initialize libgit2.
   git_libgit2_init();
-
+  FindRootCerts();
+  
+  
   Nan::HandleScope scope;
 
   Wrapper::InitializeComponent(target);
